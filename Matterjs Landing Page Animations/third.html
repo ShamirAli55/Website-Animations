@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Next-Level Matter.js Hero</title>
+<style>
+  * {
+    margin: 0; padding: 0; box-sizing: border-box;
+  }
+  body {
+    background: radial-gradient(circle at center, #0e0e0e, #000);
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    color: white;
+  }
+  #hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    z-index: 0;
+  }
+  .hero-content {
+    position: absolute;
+    z-index: 10;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 2rem 3rem;
+    background: rgba(255,255,255,0.05);
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0px 8px 30px rgba(0,0,0,0.4);
+    text-align: center;
+    animation: fadeIn 1.5s ease forwards;
+  }
+  .hero-content h1 {
+    font-size: 3.5rem;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(90deg, #ff0077, #00ffaa, #00aaff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .hero-content p {
+    font-size: 1.2rem;
+    opacity: 0.85;
+  }
+  .btn {
+    margin-top: 1.5rem;
+    padding: 12px 28px;
+    background: linear-gradient(90deg, #ff0077, #ff3399);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  .btn:hover {
+    transform: scale(1.08);
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -40%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+  }
+</style>
+</head>
+<body>
+
+<div id="hero">
+  <div class="hero-content">
+    <h1>Creative Physics</h1>
+    <p>Interactive, Fluid, and Alive</p>
+    <button class="btn">Explore Now</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+const { Engine, Render, Runner, World, Bodies, Body, Mouse, MouseConstraint, Events, Vector } = Matter;
+
+// Setup
+const engine = Engine.create();
+const world = engine.world;
+engine.world.gravity.y = 0;
+
+// Canvas
+const width = window.innerWidth;
+const height = window.innerHeight;
+const render = Render.create({
+  element: document.getElementById('hero'),
+  engine: engine,
+  options: {
+    width: width,
+    height: height,
+    wireframes: false,
+    background: 'transparent',
+    pixelRatio: window.devicePixelRatio
+  }
+});
+Render.run(render);
+const runner = Runner.create();
+Runner.run(runner, engine);
+
+// Walls
+const walls = [
+  Bodies.rectangle(width/2, height+50, width, 100, { isStatic: true }),
+  Bodies.rectangle(width/2, -50, width, 100, { isStatic: true }),
+  Bodies.rectangle(-50, height/2, 100, height, { isStatic: true }),
+  Bodies.rectangle(width+50, height/2, 100, height, { isStatic: true })
+];
+World.add(world, walls);
+
+// Gradient styles
+function randomGradient() {
+  const colors = [['#ff0077','#ff3399'], ['#00ffaa','#00ffcc'], ['#00aaff','#0044ff'], ['#ffaa00','#ff5500']];
+  return colors[Math.floor(Math.random()*colors.length)];
+}
+
+// Shapes
+let shapes = [];
+for (let i = 0; i < 20; i++) {
+  const size = Math.random() * 50 + 30;
+  const [c1, c2] = randomGradient();
+  const shape = Math.random() > 0.5 
+    ? Bodies.circle(Math.random()*width, Math.random()*height, size/2, {
+        render: {
+          fillStyle: c1,
+          strokeStyle: c2,
+          lineWidth: 4
+        },
+        restitution: 0.9,
+        friction: 0.001
+      })
+    : Bodies.polygon(Math.random()*width, Math.random()*height, Math.floor(Math.random()*3)+3, size/2, {
+        render: {
+          fillStyle: c1,
+          strokeStyle: c2,
+          lineWidth: 4
+        },
+        restitution: 0.9,
+        friction: 0.001
+      });
+  Body.setVelocity(shape, {x: (Math.random()-0.5)*2, y: (Math.random()-0.5)*2});
+  shapes.push(shape);
+  World.add(world, shape);
+}
+
+// Mouse control
+const mouse = Mouse.create(render.canvas);
+const mouseConstraint = MouseConstraint.create(engine, {
+  mouse: mouse,
+  constraint: { stiffness: 0.2, render: { visible: false } }
+});
+World.add(world, mouseConstraint);
+render.mouse = mouse;
+
+// Mouse repel
+Events.on(engine, 'beforeUpdate', () => {
+  const mousePos = mouse.position;
+  shapes.forEach(body => {
+    const dist = Vector.magnitude(Vector.sub(body.position, mousePos));
+    if (dist < 120) {
+      const forceMag = 0.0005 * (120 - dist);
+      const dir = Vector.normalise(Vector.sub(body.position, mousePos));
+      Body.applyForce(body, body.position, Vector.mult(dir, forceMag));
+    }
+  });
+});
+
+// Explosion on click
+render.canvas.addEventListener('click', () => {
+  shapes.forEach(body => {
+    const forceMag = 0.02;
+    const dir = Vector.normalise(Vector.sub(body.position, {x: width/2, y: height/2}));
+    Body.applyForce(body, body.position, Vector.mult(dir, forceMag));
+  });
+});
+
+// Parallax effect
+window.addEventListener('mousemove', (e) => {
+  const offsetX = (e.clientX / width - 0.5) * 0.02;
+  const offsetY = (e.clientY / height - 0.5) * 0.02;
+  engine.world.gravity.x = offsetX;
+  engine.world.gravity.y = offsetY;
+});
+
+// Resize
+window.addEventListener('resize', () => {
+  Render.lookAt(render, {
+    min: { x: 0, y: 0 },
+    max: { x: window.innerWidth, y: window.innerHeight }
+  });
+});
+</script>
+</body>
+</html>

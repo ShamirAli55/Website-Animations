@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PixiJS Fluid Neon Particles</title>
+<style>
+  * { margin: 0; padding: 0; }
+  body { background: #000; overflow: hidden; }
+</style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+<script>
+let app = new PIXI.Application({
+    resizeTo: window,
+    backgroundAlpha: 0
+});
+document.body.appendChild(app.view);
+
+let particles = [];
+let particleCount = 120;
+let connectionDistance = 120;
+
+function createParticle(color) {
+    let g = new PIXI.Graphics();
+    g.beginFill(color);
+    g.drawCircle(0, 0, Math.random() * 3 + 2);
+    g.endFill();
+    let texture = app.renderer.generateTexture(g);
+    let sprite = new PIXI.Sprite(texture);
+    sprite.x = Math.random() * app.screen.width;
+    sprite.y = Math.random() * app.screen.height;
+    sprite.speed = 0.02 + Math.random() * 0.05;
+    sprite.offset = Math.random() * 1000;
+    sprite.radius = 40 + Math.random() * 100; // personal orbit radius
+    sprite.angle = Math.random() * Math.PI * 2; // starting angle
+    sprite.tint = color;
+    return sprite;
+}
+
+let colors = [0xff66cc, 0x66ccff, 0xffff66, 0x66ff99];
+
+for (let i = 0; i < particleCount; i++) {
+    let p = createParticle(colors[Math.floor(Math.random() * colors.length)]);
+    particles.push(p);
+    app.stage.addChild(p);
+}
+
+let mouse = { x: app.screen.width / 2, y: app.screen.height / 2 };
+window.addEventListener("mousemove", e => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+});
+
+let lineGraphics = new PIXI.Graphics();
+app.stage.addChild(lineGraphics);
+
+app.ticker.add(() => {
+    lineGraphics.clear();
+
+    particles.forEach((p, i) => {
+        // Each particle orbits around mouse position
+        p.angle += 0.01 + Math.random() * 0.002;
+        let targetX = mouse.x + Math.cos(p.angle + p.offset) * p.radius;
+        let targetY = mouse.y + Math.sin(p.angle + p.offset) * p.radius;
+
+        // Smooth follow toward personal target
+        p.x += (targetX - p.x) * p.speed;
+        p.y += (targetY - p.y) * p.speed;
+
+        // Glow pulse
+        p.scale.set(1 + Math.sin((app.ticker.lastTime + p.offset) / 500) * 0.2);
+
+        // Connect lines to nearby particles
+        for (let j = i + 1; j < particles.length; j++) {
+            let p2 = particles[j];
+            let dist = Math.hypot(p.x - p2.x, p.y - p2.y);
+            if (dist < connectionDistance) {
+                let alpha = 1 - dist / connectionDistance;
+                lineGraphics.lineStyle(1, p.tint, alpha * 0.5);
+                lineGraphics.moveTo(p.x, p.y);
+                lineGraphics.lineTo(p2.x, p2.y);
+            }
+        }
+    });
+});
+</script>
+</body>
+</html>

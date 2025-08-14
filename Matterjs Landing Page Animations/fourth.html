@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Physics Hero Explosion + Reform</title>
+<style>
+  * {margin:0; padding:0; box-sizing:border-box;}
+  body {
+    background: radial-gradient(circle at center, #0a0a0f, #000);
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    color: white;
+  }
+  #hero {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    z-index: 0;
+  }
+</style>
+</head>
+<body>
+<div id="hero"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+const { Engine, Render, Runner, World, Bodies, Body, Mouse, MouseConstraint, Events, Vector } = Matter;
+
+const engine = Engine.create();
+engine.world.gravity.y = 0;
+const world = engine.world;
+
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+const render = Render.create({
+  element: document.getElementById('hero'),
+  engine: engine,
+  options: {
+    width: width,
+    height: height,
+    wireframes: false,
+    background: 'transparent'
+  }
+});
+Render.run(render);
+Runner.run(Runner.create(), engine);
+
+// Background stars
+for (let i = 0; i < 40; i++) {
+  let dot = Bodies.circle(Math.random()*width, Math.random()*height, 2, {
+    isStatic: true,
+    render: { fillStyle: 'rgba(255,255,255,0.15)' }
+  });
+  World.add(world, dot);
+}
+
+// Foreground shapes
+const shapes = [];
+const colors = ['#ff0077', '#00ffaa', '#00aaff', '#ffaa00'];
+
+for (let i = 0; i < 15; i++) {
+  const size = Math.random()*40+20;
+  const shape = Bodies.polygon(Math.random()*width, Math.random()*height, Math.floor(Math.random()*5)+3, size/2, {
+    restitution: 0.9,
+    render: { fillStyle: colors[Math.floor(Math.random()*colors.length)] }
+  });
+  Body.setVelocity(shape, {x: (Math.random()-0.5)*2, y: (Math.random()-0.5)*2});
+  shapes.push(shape);
+  World.add(world, shape);
+}
+
+// Text particles with target positions
+const title = "PHYSICS HERO";
+const letterSize = 6;
+const textBodies = [];
+const targetPositions = [];
+let startX = width/2 - (title.length * letterSize * 6) / 2;
+let startY = height/2;
+
+for (let i = 0; i < title.length; i++) {
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 5; x++) {
+      if (Math.random() > 0.4) {
+        const px = startX + i*letterSize*6 + x*letterSize;
+        const py = startY + y*letterSize;
+        const body = Bodies.circle(px, py, letterSize/2, {
+          restitution: 0.8,
+          frictionAir: 0.05,
+          render: { fillStyle: colors[Math.floor(Math.random()*colors.length)] }
+        });
+        textBodies.push(body);
+        targetPositions.push({x: px, y: py});
+        World.add(world, body);
+      }
+    }
+  }
+}
+
+// Mouse repel
+const mouse = Mouse.create(render.canvas);
+const mouseConstraint = MouseConstraint.create(engine, {
+  mouse: mouse,
+  constraint: { stiffness: 0.2, render: { visible: false } }
+});
+World.add(world, mouseConstraint);
+render.mouse = mouse;
+
+// Repel on hover
+Events.on(engine, 'beforeUpdate', () => {
+  const mousePos = mouse.position;
+  [...shapes, ...textBodies].forEach(body => {
+    const dist = Vector.magnitude(Vector.sub(body.position, mousePos));
+    if (dist < 120) {
+      const forceMag = 0.0005 * (120 - dist);
+      const dir = Vector.normalise(Vector.sub(body.position, mousePos));
+      Body.applyForce(body, body.position, Vector.mult(dir, forceMag));
+    }
+  });
+
+  // Reform particles
+  textBodies.forEach((body, i) => {
+    const target = targetPositions[i];
+    const toTarget = Vector.sub(target, body.position);
+    const dist = Vector.magnitude(toTarget);
+    if (dist > 0.5) {
+      const dir = Vector.normalise(toTarget);
+      const forceMag = 0.0002 * dist; // stronger if far
+      Body.applyForce(body, body.position, Vector.mult(dir, forceMag));
+    }
+  });
+});
+
+// Click explosion
+render.canvas.addEventListener('click', () => {
+  textBodies.forEach(body => {
+    const dir = Vector.normalise(Vector.sub(body.position, {x: width/2, y: height/2}));
+    Body.applyForce(body, body.position, Vector.mult(dir, 0.03));
+  });
+});
+</script>
+</body>
+</html>

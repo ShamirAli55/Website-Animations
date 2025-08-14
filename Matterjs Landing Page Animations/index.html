@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sick Hero Page with Matter.js</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Poppins', sans-serif;
+      overflow: hidden;
+      background: #0f0f0f;
+      color: white;
+    }
+    #hero {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+    }
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+    .hero-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    .hero-content h1 {
+      font-size: 4rem;
+      letter-spacing: 2px;
+      text-shadow: 0px 4px 10px rgba(0,0,0,0.4);
+    }
+    .hero-content p {
+      margin-top: 1rem;
+      font-size: 1.2rem;
+      opacity: 0.8;
+    }
+    .btn {
+      margin-top: 2rem;
+      padding: 12px 30px;
+      background: #ff0077;
+      border: none;
+      border-radius: 25px;
+      color: white;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn:hover {
+      background: #ff3399;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+
+<div id="hero">
+  <div class="hero-content">
+    <h1>Physics Powered Hero</h1>
+    <p>Built with Matter.js and pure awesomeness</p>
+    <button class="btn">Get Started</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+  const { Engine, Render, Runner, World, Bodies, Mouse, MouseConstraint, Events } = Matter;
+
+  const engine = Engine.create();
+  const world = engine.world;
+  engine.world.gravity.y = 0.5; // mild gravity for bouncing effect
+
+  const hero = document.getElementById("hero");
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  const render = Render.create({
+    element: hero,
+    engine: engine,
+    options: {
+      width: width,
+      height: height,
+      wireframes: false,
+      background: 'transparent'
+    }
+  });
+
+  Render.run(render);
+  const runner = Runner.create();
+  Runner.run(runner, engine);
+
+
+  const ground = Bodies.rectangle(width/2, height+50, width, 100, { isStatic: true });
+  const leftWall = Bodies.rectangle(-50, height/2, 100, height, { isStatic: true });
+  const rightWall = Bodies.rectangle(width+50, height/2, 100, height, { isStatic: true });
+  const ceiling = Bodies.rectangle(width/2, -50, width, 100, { isStatic: true });
+  World.add(world, [ground, leftWall, rightWall, ceiling]);
+
+  const colors = ['#ff0077', '#00ffaa', '#00aaff', '#ffaa00', '#aa00ff'];
+  for (let i = 0; i < 15; i++) {
+    const size = Math.random() * 40 + 20;
+    const x = Math.random() * width;
+    const y = Math.random() * height;
+    const shape = Math.random() > 0.5 
+      ? Bodies.circle(x, y, size/2, {
+          render: { fillStyle: colors[Math.floor(Math.random()*colors.length)] }
+        })
+      : Bodies.rectangle(x, y, size, size, {
+          render: { fillStyle: colors[Math.floor(Math.random()*colors.length)] }
+        });
+    World.add(world, shape);
+  }
+
+  const mouse = Mouse.create(render.canvas);
+  const mouseConstraint = MouseConstraint.create(engine, {
+    mouse: mouse,
+    constraint: { stiffness: 0.2, render: { visible: false } }
+  });
+  World.add(world, mouseConstraint);
+
+  render.mouse = mouse;
+
+  window.addEventListener('resize', () => {
+    Render.lookAt(render, {
+      min: { x: 0, y: 0 },
+      max: { x: window.innerWidth, y: window.innerHeight }
+    });
+  });
+</script>
+
+</body>
+</html>

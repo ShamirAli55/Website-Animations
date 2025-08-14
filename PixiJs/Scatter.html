@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scattered Fluid Cursor Particles</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+  <style>
+    body { margin: 0; background: black; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+<script>
+const app = new PIXI.Application({ resizeTo: window, backgroundColor: 0x000000 });
+document.body.appendChild(app.view);
+
+let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+window.addEventListener('mousemove', e => {
+  mouse.x = e.clientX;
+  mouse.y = e.clientY;
+});
+
+class Particle {
+  constructor() {
+    this.graphic = new PIXI.Graphics();
+    this.graphic.beginFill(Math.random() * 0xffffff);
+    this.graphic.drawCircle(0, 0, Math.random() * 4 + 2);
+    this.graphic.endFill();
+    this.x = Math.random() * window.innerWidth;
+    this.y = Math.random() * window.innerHeight;
+    this.speed = 0.02 + Math.random() * 0.05; // Random speed
+    this.offsetX = (Math.random() - 0.5) * 150; // Each particle has own offset
+    this.offsetY = (Math.random() - 0.5) * 150;
+    app.stage.addChild(this.graphic);
+  }
+  
+  update() {
+    let targetX = mouse.x + this.offsetX;
+    let targetY = mouse.y + this.offsetY;
+    this.x += (targetX - this.x) * this.speed; // Smooth follow with delay
+    this.y += (targetY - this.y) * this.speed;
+    
+    // Add small random jitter for fluid effect
+    this.x += (Math.random() - 0.5) * 0.5;
+    this.y += (Math.random() - 0.5) * 0.5;
+
+    this.graphic.x = this.x;
+    this.graphic.y = this.y;
+  }
+}
+
+let particles = [];
+for (let i = 0; i < 200; i++) {
+  particles.push(new Particle());
+}
+
+app.ticker.add(() => {
+  particles.forEach(p => p.update());
+});
+</script>
+</body>
+</html>

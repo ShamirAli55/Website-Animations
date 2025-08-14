@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixiJS Fluid Particle Follow</title>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: #0d0d0d;
+    }
+</style>
+</head>
+<body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.0.5/pixi.min.js"></script>
+<script>
+const app = new PIXI.Application({ 
+    resizeTo: window, 
+    backgroundAlpha: 0 
+});
+document.body.appendChild(app.view);
+
+const particles = [];
+const colors = [0xff0055, 0x00ffaa, 0x00aaff, 0xffff00, 0xff8800];
+let mouseX = window.innerWidth / 2;
+let mouseY = window.innerHeight / 2;
+
+window.addEventListener("mousemove", e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+});
+
+// Create scattered particles
+for (let i = 0; i < 150; i++) {
+    let g = new PIXI.Graphics();
+    g.beginFill(colors[Math.floor(Math.random() * colors.length)]);
+    if (Math.random() > 0.5) {
+        g.drawCircle(0, 0, Math.random() * 6 + 2);
+    } else {
+        g.drawRect(-3, -3, Math.random() * 6 + 4, Math.random() * 6 + 4);
+    }
+    g.endFill();
+
+    g.x = Math.random() * window.innerWidth;
+    g.y = Math.random() * window.innerHeight;
+
+    g.vx = (Math.random() - 0.5) * 2;
+    g.vy = (Math.random() - 0.5) * 2;
+    g.delayFactor = Math.random() * 0.15 + 0.05; // controls follow delay
+
+    app.stage.addChild(g);
+    particles.push(g);
+}
+
+// Animation loop
+app.ticker.add(() => {
+    for (let p of particles) {
+        let dx = mouseX + (Math.random() * 200 - 100) - p.x;
+        let dy = mouseY + (Math.random() * 200 - 100) - p.y;
+
+        p.x += dx * p.delayFactor;
+        p.y += dy * p.delayFactor;
+
+        // Small random drifting
+        p.x += p.vx * 0.5;
+        p.y += p.vy * 0.5;
+    }
+});
+</script>
+</body>
+</html>

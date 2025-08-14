@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lagging Fluid Swarm</title>
+<style>
+  * {margin:0; padding:0; box-sizing:border-box;}
+  body {
+    background: radial-gradient(circle at center, #0a0a0f, #000);
+    overflow: hidden;
+    height: 100vh;
+  }
+  #hero {
+    width: 100%;
+    height: 100vh;
+  }
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+  }
+</style>
+</head>
+<body>
+<div id="hero"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+const { Engine, Render, Runner, World, Bodies, Body, Vector, Events } = Matter;
+
+// Engine setup
+const engine = Engine.create();
+engine.world.gravity.y = 0;
+const world = engine.world;
+const width = window.innerWidth;
+const height = window.innerHeight;
+
+const render = Render.create({
+  element: document.getElementById('hero'),
+  engine: engine,
+  options: {
+    width: width,
+    height: height,
+    wireframes: false,
+    background: 'transparent'
+  }
+});
+Render.run(render);
+Runner.run(Runner.create(), engine);
+
+// Colors & shapes
+const colors = ['#ff0077', '#00ffaa', '#00aaff', '#ffaa00', '#ff6600', '#cc00ff'];
+const particles = [];
+const offsets = [];
+const speeds = [];
+
+function randomShape(x, y, size, color) {
+  const type = Math.floor(Math.random() * 3);
+  const props = {
+    frictionAir: Math.random() * 0.12 + 0.1, // slightly more drag for smoother delay
+    render: { fillStyle: color }
+  };
+
+  if (type === 0) return Bodies.circle(x, y, size / 2, props);
+  if (type === 1) return Bodies.rectangle(x, y, size, size, props);
+  return Bodies.polygon(x, y, Math.floor(Math.random() * 5) + 3, size / 2, props);
+}
+
+// Create particles
+for (let i = 0; i < 50; i++) {
+  const size = Math.random() * 12 + 6;
+  const color = colors[Math.floor(Math.random() * colors.length)];
+  const p = randomShape(Math.random() * width, Math.random() * height, size, color);
+  particles.push(p);
+
+  offsets.push({
+    x: Math.random() * 200 - 100,
+    y: Math.random() * 200 - 100
+  });
+
+  // Speed factor is smaller → more delay
+  speeds.push(Math.random() * 0.4 + 0.15); // 0.15 → 0.55
+
+  World.add(world, p);
+}
+
+// Mouse tracking
+let mousePos = { x: width / 2, y: height / 2 };
+document.addEventListener('mousemove', e => {
+  mousePos.x = e.clientX;
+  mousePos.y = e.clientY;
+});
+
+// Smooth lagged follow
+Events.on(engine, 'beforeUpdate', () => {
+  particles.forEach((p, i) => {
+    const target = {
+      x: mousePos.x + offsets[i].x,
+      y: mousePos.y + offsets[i].y
+    };
+
+    // gentle organic drift
+    target.x += Math.sin(Date.now() / 1200 + i) * 5;
+    target.y += Math.cos(Date.now() / 1300 + i) * 5;
+
+    const toTarget = Vector.sub(target, p.position);
+    const dist = Vector.magnitude(toTarget);
+
+    if (dist > 0.1) {
+      const dir = Vector.normalise(toTarget);
+      const forceMag = 0.000015 * dist * speeds[i]; // much smaller force → longer delay
+      Body.applyForce(p, p.position, Vector.mult(dir, forceMag));
+    }
+  });
+});
+</script>
+</body>
+</html>

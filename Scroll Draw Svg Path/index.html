@@ -1,50 +1,56 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Scroll Draw SVG Path</title>
-  <style>
-    body { margin: 0; height: 200vh; background: #f0f2f5; }
-    svg {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100vh;
-      pointer-events: none;
-    }
-    path {
-      stroke: #2e55ff;
-      stroke-width: 15;
-      fill: none;
-      stroke-linecap: round;
-      stroke-dasharray: 1000;
-      stroke-dashoffset: 1000;
-    }
-  </style>
-</head>
+<style>
+  body {
+    margin: 0;
+    background: #f0f2f5;
+  }
+
+  svg.squiggle {
+    width: 60%;   /* responsive size */
+    height: auto; /* maintain proportions */
+    display: block;
+  }
+</style>
+
 <body>
-  <svg viewBox="0 0 1200 600">
-    <path id="scrollPath"
-          d="M 0 300 C 300 100, 600 500, 900 300 S 1200 100, 1500 300"/>
-  </svg>
+    <svg
+      viewBox="0 0 1000 2000"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      class="squiggle"
+    >
+      <path
+        d="M-24.5 101C285 315 5.86278 448.291 144.223 631.238C239.404 757.091 559.515 782.846 608.808 617.456C658.101 452.067 497.627 367.073 406.298 426.797C314.968 486.521 263.347 612.858 322.909 865.537C384.086 1125.06 79.3992 1007.94 100 1261.99C144.222 1807.35 819 1325 513 1142.5C152.717 927.625 -45 1916.5 1191.5 1852"
+        stroke="#CD3C2F"
+        stroke-width="30"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+      />
+    </svg>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/DrawSVGPlugin.min.js"></script>
-
   <script>
     gsap.registerPlugin(ScrollTrigger);
+  
+    const path = document.querySelector("path");
+    const pathLength = path.getTotalLength();
+  
 
-    gsap.to("#scrollPath", {
+    path.style.strokeDasharray = pathLength;
+    path.style.strokeDashoffset = pathLength;
+  
+    gsap.to(path, {
+      strokeDashoffset: 0,
+      ease: "none",
       scrollTrigger: {
-        trigger: document.body,
+        trigger: "body",
         start: "top top",
-        end: "bottom top",
+        end: "bottom bottom",
         scrub: true
-      },
-      strokeDashoffset: 0
+      }
     });
   </script>
+  
 </body>
 </html>
